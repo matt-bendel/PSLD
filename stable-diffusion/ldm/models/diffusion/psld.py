@@ -231,7 +231,6 @@ class DDIMSampler(object):
 
                 # current prediction for x_0
                 pred_z_0 = (z_t - sqrt_one_minus_at * e_t) / a_t.sqrt()
-                pred_z_0 = pred_z_0
 
                 image_pred = self.model.differentiable_decode_first_stage(pred_z_0)
                 meas_pred = operator.forward(image_pred, mask=ip_mask)
