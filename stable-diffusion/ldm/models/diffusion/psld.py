@@ -240,8 +240,6 @@ class DDIMSampler(object):
 
                 error = meas_error
                 gradients = torch.autograd.grad(error, inputs=pred_z_0)[0]
-                z_prev = z_prev - gradients
-
                 pred_z_0_prime = pred_z_0 - gradients
 
                 pred_x_0 = self.model.differentiable_decode_first_stage(pred_z_0_prime)
