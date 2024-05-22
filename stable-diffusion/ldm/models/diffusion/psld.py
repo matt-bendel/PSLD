@@ -201,7 +201,7 @@ class DDIMSampler(object):
         ## measurment consistency guided diffusion
         ##########################################
         if inpainting:
-            # print('Running inpainting module...')
+            print('Running inpainting module...')
             z_t = torch.clone(x.detach())
             z_t.requires_grad = True
             
@@ -259,9 +259,9 @@ class DDIMSampler(object):
             
             # pdb.set_trace()
             # encoded_z_0 = self.model.encode_first_stage(inpainted_image) if ffhq256 else self.model.encode_first_stage(inpainted_image) 
-            encoded_z_0 = self.model.encode_first_stage(inpainted_image.type(torch.float32))
-            encoded_z_0 = self.model.get_first_stage_encoding(encoded_z_0)
-            inpaint_error = torch.linalg.norm(encoded_z_0 - pred_z_0)
+            # encoded_z_0 = self.model.encode_first_stage(inpainted_image.type(torch.float32))
+            # encoded_z_0 = self.model.get_first_stage_encoding(encoded_z_0)
+            # inpaint_error = torch.linalg.norm(encoded_z_0 - pred_z_0)
             
             # error = inpaint_error * gamma + meas_error * omega
             error = meas_error * omega
@@ -272,7 +272,7 @@ class DDIMSampler(object):
             return z_prev.detach(), pred_z_0.detach()
         
         elif general_inverse:
-            # print('Running general inverse module...')
+            print('Running general inverse module...')
             z_t = torch.clone(x.detach())
             z_t.requires_grad = True
             
