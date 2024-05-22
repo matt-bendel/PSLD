@@ -242,7 +242,7 @@ class DDIMSampler(object):
                 pred_z_0_prime = pred_z_0 - gradients
 
                 pred_x_0 = self.model.differentiable_decode_first_stage(pred_z_0_prime)
-                meas_pred_2 = operator.forward(pred_x_0)
+                meas_pred_2 = operator.forward(pred_x_0, mask=ip_mask)
 
                 loss = torch.linalg.norm(meas_pred_2 - measurements) ** 2
                 self.opt.zero_grad()
