@@ -5,5 +5,5 @@ python scripts/inverse.py \
     --inpainting=1 \
     --general_inverse=0 \
     --gamma=1e-2 \
-    --omega=5e-2 \
+    --omega=1e-1 \
     --outdir='outputs/psld-samples-bip' 
