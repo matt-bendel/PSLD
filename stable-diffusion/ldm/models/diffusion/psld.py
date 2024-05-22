@@ -106,6 +106,7 @@ class DDIMSampler(object):
             self.optimal_c.requires_grad = True
             self.opt = Adam([self.optimal_c], lr=1e-4)
 
+        print(f'GUIDANCE: {unconditional_guidance_scale}')
         self.make_schedule(ddim_num_steps=S, ddim_eta=eta, verbose=verbose)
         # sampling
         C, H, W = shape
@@ -216,49 +217,49 @@ class DDIMSampler(object):
             z_t = torch.clone(x.detach())
 
             # TODO
-            for k in range(self.K):
-                e_t = self.model.apply_model(z_t, t, self.optimal_c)
+            # for k in range(self.K):
+            #     e_t = self.model.apply_model(z_t, t, self.optimal_c)
+            #
+            #     alphas = self.model.alphas_cumprod if use_original_steps else self.ddim_alphas
+            #     alphas_prev = self.model.alphas_cumprod_prev if use_original_steps else self.ddim_alphas_prev
+            #     sqrt_one_minus_alphas = self.model.sqrt_one_minus_alphas_cumprod if use_original_steps else self.ddim_sqrt_one_minus_alphas
+            #     sigmas = self.model.ddim_sigmas_for_original_num_steps if use_original_steps else self.ddim_sigmas
+            #     # select parameters corresponding to the currently considered timestep
+            #     a_t = torch.full((b, 1, 1, 1), alphas[index], device=device)
+            #     a_prev = torch.full((b, 1, 1, 1), alphas_prev[index], device=device)
+            #     sigma_t = torch.full((b, 1, 1, 1), sigmas[index], device=device)
+            #     sqrt_one_minus_at = torch.full((b, 1, 1, 1), sqrt_one_minus_alphas[index], device=device)
+            #
+            #     # current prediction for x_0
+            #     pred_z_0 = (z_t - sqrt_one_minus_at * e_t) / a_t.sqrt()
+            #
+            #     image_pred = self.model.differentiable_decode_first_stage(pred_z_0)
+            #     meas_pred = operator.forward(image_pred, mask=ip_mask)
+            #     meas_pred = noiser(meas_pred)
+            #     meas_error = torch.linalg.norm(meas_pred - measurements)
+            #
+            #     error = meas_error
+            #     gradients = torch.autograd.grad(error, inputs=pred_z_0)[0]
+            #     pred_z_0_prime = pred_z_0 - gradients
+            #
+            #     pred_x_0 = self.model.differentiable_decode_first_stage(pred_z_0_prime)
+            #     meas_pred_2 = operator.forward(pred_x_0, mask=ip_mask)
+            #
+            #     loss = torch.linalg.norm(meas_pred_2 - measurements) ** 2
+            #     self.opt.zero_grad()
+            #     loss.backward()
+            #     self.opt.step()
+            #     print(f'TEXT LOSS: {loss.item()}')
 
-                alphas = self.model.alphas_cumprod if use_original_steps else self.ddim_alphas
-                alphas_prev = self.model.alphas_cumprod_prev if use_original_steps else self.ddim_alphas_prev
-                sqrt_one_minus_alphas = self.model.sqrt_one_minus_alphas_cumprod if use_original_steps else self.ddim_sqrt_one_minus_alphas
-                sigmas = self.model.ddim_sigmas_for_original_num_steps if use_original_steps else self.ddim_sigmas
-                # select parameters corresponding to the currently considered timestep
-                a_t = torch.full((b, 1, 1, 1), alphas[index], device=device)
-                a_prev = torch.full((b, 1, 1, 1), alphas_prev[index], device=device)
-                sigma_t = torch.full((b, 1, 1, 1), sigmas[index], device=device)
-                sqrt_one_minus_at = torch.full((b, 1, 1, 1), sqrt_one_minus_alphas[index], device=device)
 
-                # current prediction for x_0
-                pred_z_0 = (z_t - sqrt_one_minus_at * e_t) / a_t.sqrt()
-
-                image_pred = self.model.differentiable_decode_first_stage(pred_z_0)
-                meas_pred = operator.forward(image_pred, mask=ip_mask)
-                meas_pred = noiser(meas_pred)
-                meas_error = torch.linalg.norm(meas_pred - measurements)
-
-                error = meas_error
-                gradients = torch.autograd.grad(error, inputs=pred_z_0)[0]
-                pred_z_0_prime = pred_z_0 - gradients
-
-                pred_x_0 = self.model.differentiable_decode_first_stage(pred_z_0_prime)
-                meas_pred_2 = operator.forward(pred_x_0, mask=ip_mask)
-
-                loss = torch.linalg.norm(meas_pred_2 - measurements) ** 2
-                self.opt.zero_grad()
-                loss.backward()
-                self.opt.step()
-                print(f'TEXT LOSS: {loss.item()}')
-
-
-            # if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
-            #     e_t = self.model.apply_model(z_t, t, c)
-            # else:
-            #     x_in = torch.cat([z_t] * 2)
-            #     t_in = torch.cat([t] * 2)
-            #     c_in = torch.cat([unconditional_conditioning, c])
-            #     e_t_uncond, e_t = self.model.apply_model(x_in, t_in, c_in).chunk(2)
-            #     e_t = e_t_uncond + unconditional_guidance_scale * (e_t - e_t_uncond)
+            if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
+                e_t = self.model.apply_model(z_t, t, c)
+            else:
+                x_in = torch.cat([z_t] * 2)
+                t_in = torch.cat([t] * 2)
+                c_in = torch.cat([unconditional_conditioning, c])
+                e_t_uncond, e_t = self.model.apply_model(x_in, t_in, c_in).chunk(2)
+                e_t = e_t_uncond + unconditional_guidance_scale * (e_t - e_t_uncond)
 
             e_t = self.model.apply_model(z_t, t, self.optimal_c)
 
