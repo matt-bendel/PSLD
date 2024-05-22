@@ -4,6 +4,6 @@ python scripts/inverse.py \
     --task_config='configs/box_inpainting_config_psld.yaml' \
     --inpainting=1 \
     --general_inverse=0 \
-    --gamma=1e-1 \
-    --omega=1.0 \
+    --gamma=1e-2 \
+    --omega=5e-2 \
     --outdir='outputs/psld-samples-bip' 
