@@ -140,6 +140,9 @@ class DDIMSampler(object):
         else:
             img = x_T
 
+        if inpainting:
+            print('inpaing baby!')
+
         if timesteps is None:
             timesteps = self.ddpm_num_timesteps if ddim_use_original_steps else self.ddim_timesteps
         elif timesteps is not None and not ddim_use_original_steps:
@@ -260,7 +263,8 @@ class DDIMSampler(object):
             encoded_z_0 = self.model.get_first_stage_encoding(encoded_z_0)
             inpaint_error = torch.linalg.norm(encoded_z_0 - pred_z_0)
             
-            error = inpaint_error * gamma + meas_error * omega
+            # error = inpaint_error * gamma + meas_error * omega
+            error = meas_error * omega
             gradients = torch.autograd.grad(error, inputs=z_t)[0]
             z_prev = z_prev - gradients
             print('Loss: ', error.item())
