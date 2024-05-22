@@ -213,9 +213,9 @@ class DDIMSampler(object):
         ## measurment consistency guided diffusion
         ##########################################
         if inpainting:
-            print('Running inpainting module...')
             z_t = torch.clone(x.detach())
 
+            # TODO
             for k in range(self.K):
                 e_t = self.model.apply_model(z_t, t, self.optimal_c)
 
