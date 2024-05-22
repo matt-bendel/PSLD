@@ -256,6 +256,23 @@ def main():
         default=1,
         help="general inverse",
     )
+    ### NEW ARGS ### TODO
+    parser.add_argument(
+        "--K",
+        type=int,
+        default=1,
+        help="Number of prompt tuning iterations",
+    )
+
+    parser.add_argument(
+        "--prompt-lr",
+        type=float,
+        default=1e-4,
+        help="Learning rate for prompt tuning",
+    )
+
+    #################
+
     parser.add_argument(
         "--file_id",
         type=str,
