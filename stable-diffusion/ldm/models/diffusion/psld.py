@@ -273,11 +273,11 @@ class DDIMSampler(object):
             z_t.requires_grad = True
 
             if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
-                e_t = self.model.apply_model(z_t, t, c)
+                e_t = self.model.apply_model(z_t, t, self.optimal_c)
             else:
                 x_in = torch.cat([z_t] * 2)
                 t_in = torch.cat([t] * 2)
-                c_in = torch.cat([unconditional_conditioning, c])
+                c_in = torch.cat([self.optimal_c, c])
                 e_t_uncond, e_t = self.model.apply_model(x_in, t_in, c_in).chunk(2)
                 e_t = e_t_uncond + unconditional_guidance_scale * (e_t - e_t_uncond)
 
@@ -325,7 +325,7 @@ class DDIMSampler(object):
             inpainted_image = parallel_project + ortho_project
             
             # pdb.set_trace()
-            encoded_z_0 = self.model.encode_first_stage(inpainted_image) if ffhq256 else self.model.encode_first_stage(inpainted_image)
+            # encoded_z_0 = self.model.encode_first_stage(inpainted_image) if ffhq256 else self.model.encode_first_stage(inpainted_image)
             encoded_z_0 = self.model.encode_first_stage(inpainted_image.type(torch.float32))
             encoded_z_0 = self.model.get_first_stage_encoding(encoded_z_0)
             inpaint_error = torch.linalg.norm(encoded_z_0 - pred_z_0)
