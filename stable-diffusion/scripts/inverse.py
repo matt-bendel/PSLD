@@ -459,10 +459,6 @@ def main():
 
                         c = model.get_learned_conditioning(prompts)
 
-                        print(c[0])
-                        print(uc[0])
-                        exit()
-
                         shape = [opt.C, opt.H // opt.f, opt.W // opt.f]
                         samples_ddim, _ = sampler.sample(S=opt.ddim_steps,
                                                         conditioning=c,
@@ -500,7 +496,8 @@ def main():
 
                                 mask = mask.cpu().numpy()
                                 
-                                inpainted = mask*image+(1-mask)*x_sample.cpu().numpy()
+                                # inpainted = mask*image+(1-mask)*x_sample.cpu().numpy()
+                                inpainted = x_sample.cpu().numpy()
                                 inpainted = inpainted.transpose(0,2,3,1)[0]*255
                                 Image.fromarray(inpainted.astype(np.uint8)).save(os.path.join(sample_path, f"{base_count:05}.png"))
                             else:
