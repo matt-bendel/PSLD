@@ -457,7 +457,7 @@ def main():
                         if isinstance(prompts, tuple):
                             prompts = list(prompts)
 
-                        prompts = ['A realistic human face']
+                        prompts = ['A realistic image of a little girls face']
 
                         c = model.get_learned_conditioning(prompts)
 
