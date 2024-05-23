@@ -20,7 +20,7 @@ class DDIMSampler(object):
         # TODO
         self.optimal_c = None
         self.opt = None
-        self.K = 5
+        self.K = 2
 
     def register_buffer(self, name, attr):
         if type(attr) == torch.Tensor:
@@ -104,7 +104,6 @@ class DDIMSampler(object):
         if self.optimal_c is None:
             self.optimal_c = conditioning
             self.optimal_c.requires_grad = True
-            self.opt = Adam([self.optimal_c], lr=5e-4)
 
         print(self.optimal_c.detach().cpu().numpy()[0])
 
@@ -175,6 +174,9 @@ class DDIMSampler(object):
 
         c_opt = False
         for i, step in enumerate(iterator):
+            self.optimal_c = self.optimal_c.detach()
+            self.optimal_c.requires_grad = True
+
             index = total_steps - i - 1
             #print('index:', index)
             ts = torch.full((b,), step, device=device, dtype=torch.long)
@@ -230,8 +232,6 @@ class DDIMSampler(object):
                 if not c_opt:
                     break
 
-                self.opt.zero_grad()
-
                 if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
                     e_t = self.model.apply_model(z_t, t, self.optimal_c)
                 else:
@@ -268,8 +268,9 @@ class DDIMSampler(object):
                 meas_pred = noiser(meas_pred)
 
                 loss = torch.linalg.norm(meas_pred - measurements) ** 2
-                loss.backward()
-                self.opt.step()
+                gradients = torch.autograd.grad(loss, inputs=self.optimal_c)[0]
+                self.optimal_c = self.optimal_c - gradients
+
                 print(f'TEXT LOSS: {loss.item()}')
 
             z_t.requires_grad = True
