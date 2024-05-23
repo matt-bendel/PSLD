@@ -103,7 +103,6 @@ class DDIMSampler(object):
         # TODO
         if self.optimal_c is None:
             self.optimal_c = conditioning
-
             self.optimal_c.requires_grad = True
             self.opt = Adam([self.optimal_c], lr=1e-4)
 
