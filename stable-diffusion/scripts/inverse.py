@@ -497,9 +497,11 @@ def main():
                                 mask = mask.cpu().numpy()
                                 
                                 # inpainted = mask*image+(1-mask)*x_sample.cpu().numpy()
+                                # inpainted = inpainted.transpose(0,2,3,1)[0]*255
+
                                 inpainted = x_sample.cpu().numpy()
-                                print(inpainted.shape)
-                                inpainted = inpainted.transpose(0,2,3,1)[0]*255
+                                inpainted = inpainted.transpose(1,2,0)*255
+
                                 Image.fromarray(inpainted.astype(np.uint8)).save(os.path.join(sample_path, f"{base_count:05}.png"))
                             else:
                                 x_sample = 255. * rearrange(x_sample.cpu().numpy(), 'c h w -> h w c')
