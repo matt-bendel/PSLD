@@ -169,6 +169,7 @@ class DDIMSampler(object):
 
         iterator = tqdm(time_range, desc='DDIM Sampler', total=total_steps)
 
+        c_opt = False
         for i, step in enumerate(iterator):
             index = total_steps - i - 1
             #print('index:', index)
@@ -178,6 +179,9 @@ class DDIMSampler(object):
                 assert x0 is not None
                 img_orig = self.model.q_sample(x0, ts)  # TODO: deterministic forward pass?
                 img = img_orig * mask + (1. - mask) * img
+
+            if i > total_steps / 10:
+                c_opt = True
 
             outs = self.p_sample_ddim(img, cond, ts, index=index, use_original_steps=ddim_use_original_steps,
                                       quantize_denoised=quantize_denoised, temperature=temperature,
@@ -189,7 +193,8 @@ class DDIMSampler(object):
                                       inpainting=inpainting, omega=omega,
                                       gamma_scale = index/total_steps,
                                       general_inverse=general_inverse, noiser=noiser,
-                                      ffhq256=ffhq256)
+                                      ffhq256=ffhq256,
+                                      c_opt=c_opt)
             img, pred_x0 = outs
             if callback: callback(i)
             if img_callback: img_callback(pred_x0, i)
@@ -207,7 +212,7 @@ class DDIMSampler(object):
                       ip_mask=None, measurements = None, operator = None, gamma=1, inpainting=False,
                       gamma_scale = None, omega = 1e-1,
                       general_inverse=False,noiser=None,
-                      ffhq256=False):
+                      ffhq256=False, c_opt=False):
         b, *_, device = *x.shape, x.device
            
         ##########################################
@@ -218,6 +223,9 @@ class DDIMSampler(object):
 
             # TODO
             for k in range(self.K):
+                if not c_opt:
+                    break
+
                 self.opt.zero_grad()
 
                 if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
