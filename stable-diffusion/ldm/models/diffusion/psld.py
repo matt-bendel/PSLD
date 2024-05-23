@@ -254,16 +254,8 @@ class DDIMSampler(object):
                 image_pred = self.model.differentiable_decode_first_stage(pred_z_0)
                 meas_pred = operator.forward(image_pred, mask=ip_mask)
                 meas_pred = noiser(meas_pred)
-                meas_error = torch.linalg.norm(meas_pred - measurements)
 
-                error = meas_error
-                gradients = torch.autograd.grad(error, inputs=pred_z_0)[0]
-                pred_z_0_prime = pred_z_0 - gradients
-
-                pred_x_0 = self.model.differentiable_decode_first_stage(pred_z_0_prime)
-                meas_pred_2 = operator.forward(pred_x_0, mask=ip_mask)
-
-                loss = torch.linalg.norm(meas_pred_2 - measurements) ** 2
+                loss = torch.linalg.norm(meas_pred - measurements) ** 2
                 loss.backward()
                 self.opt.step()
                 print(f'TEXT LOSS: {loss.item()}')
