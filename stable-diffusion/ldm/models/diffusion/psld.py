@@ -263,7 +263,7 @@ class DDIMSampler(object):
                 pred_x_0 = self.model.differentiable_decode_first_stage(pred_z_0_prime)
                 meas_pred_2 = operator.forward(pred_x_0, mask=ip_mask)
 
-                loss = 1 / meas_error * torch.linalg.norm(meas_pred_2 - measurements) ** 2
+                loss = torch.linalg.norm(meas_pred_2 - measurements) ** 2
                 loss.backward()
                 self.opt.step()
                 print(f'TEXT LOSS: {loss.item()}')
