@@ -227,7 +227,9 @@ class DDIMSampler(object):
                 else:
                     # 2 NFEs, No good!!
                     e_t_uncond = self.model.apply_model(z_t, t, self.optimal_c)
-                    e_t = self.model.apply_model(z_t, t, c)
+                    with torch.no_grad():
+                        e_t = self.model.apply_model(z_t, t, c)
+
                     e_t = e_t_uncond + unconditional_guidance_scale * (e_t - e_t_uncond)
 
                 if score_corrector is not None:
@@ -253,16 +255,16 @@ class DDIMSampler(object):
                 image_pred = self.model.differentiable_decode_first_stage(pred_z_0)
                 meas_pred = operator.forward(image_pred, mask=ip_mask)
                 meas_pred = noiser(meas_pred)
-                # meas_error = torch.linalg.norm(meas_pred - measurements)
+                meas_error = torch.linalg.norm(meas_pred - measurements)
 
-                # error = meas_error
-                # gradients = torch.autograd.grad(error, inputs=pred_z_0)[0]
-                # pred_z_0_prime = pred_z_0 - gradients
+                error = meas_error
+                gradients = torch.autograd.grad(error, inputs=pred_z_0)[0]
+                pred_z_0_prime = pred_z_0 - gradients
 
-                # pred_x_0 = self.model.differentiable_decode_first_stage(pred_z_0)
-                # meas_pred_2 = operator.forward(pred_x_0, mask=ip_mask)
+                pred_x_0 = self.model.differentiable_decode_first_stage(pred_z_0_prime)
+                meas_pred_2 = operator.forward(pred_x_0, mask=ip_mask)
 
-                loss = torch.linalg.norm(meas_pred - measurements) ** 2
+                loss = torch.linalg.norm(meas_pred_2 - measurements) ** 2
                 self.opt.zero_grad()
                 loss.backward()
                 self.opt.step()
