@@ -252,8 +252,6 @@ class DDIMSampler(object):
             #     self.opt.step()
             #     print(f'TEXT LOSS: {loss.item()}')
 
-            print(f'GUIDANCE: {unconditional_guidance_scale}')
-
             if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
                 e_t = self.model.apply_model(z_t, t, c)
             else:
