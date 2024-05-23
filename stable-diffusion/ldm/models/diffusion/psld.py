@@ -102,10 +102,7 @@ class DDIMSampler(object):
 
         # TODO
         if self.optimal_c is None:
-            if unconditional_conditioning is None:
-                self.optimal_c = unconditional_conditioning
-            else:
-                self.optimal_c = conditioning
+            self.optimal_c = conditioning
 
             self.optimal_c.requires_grad = True
             self.opt = Adam([self.optimal_c], lr=1e-4)
@@ -226,9 +223,10 @@ class DDIMSampler(object):
                     e_t = self.model.apply_model(z_t, t, self.optimal_c)
                 else:
                     # 2 NFEs, No good!!
-                    e_t_uncond = self.model.apply_model(z_t, t, self.optimal_c)
                     with torch.no_grad():
-                        e_t = self.model.apply_model(z_t, t, c)
+                        e_t_uncond = self.model.apply_model(z_t, t, unconditional_conditioning)
+
+                    e_t = self.model.apply_model(z_t, t, self.optimal_c)
 
                     e_t = e_t_uncond + unconditional_guidance_scale * (e_t - e_t_uncond)
 
@@ -277,7 +275,7 @@ class DDIMSampler(object):
             else:
                 x_in = torch.cat([z_t] * 2)
                 t_in = torch.cat([t] * 2)
-                c_in = torch.cat([self.optimal_c, c])
+                c_in = torch.cat([unconditional_conditioning, self.optimal_c])
                 e_t_uncond, e_t = self.model.apply_model(x_in, t_in, c_in).chunk(2)
                 e_t = e_t_uncond + unconditional_guidance_scale * (e_t - e_t_uncond)
 
