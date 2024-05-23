@@ -20,7 +20,7 @@ class DDIMSampler(object):
         # TODO
         self.optimal_c = None
         self.opt = None
-        self.K = 1
+        self.K = 2
 
     def register_buffer(self, name, attr):
         if type(attr) == torch.Tensor:
@@ -104,7 +104,7 @@ class DDIMSampler(object):
         if self.optimal_c is None:
             self.optimal_c = conditioning
             self.optimal_c.requires_grad = True
-            self.opt = Adam([self.optimal_c], lr=1e-4)
+            self.opt = Adam([self.optimal_c], lr=1e-5)
 
         print(f'GUIDANCE: {unconditional_guidance_scale}')
         self.make_schedule(ddim_num_steps=S, ddim_eta=eta, verbose=verbose)
