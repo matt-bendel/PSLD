@@ -20,7 +20,7 @@ class DDIMSampler(object):
         # TODO
         self.optimal_c = None
         self.opt = None
-        self.K = 1
+        self.K = 5
 
     def register_buffer(self, name, attr):
         if type(attr) == torch.Tensor:
@@ -223,7 +223,6 @@ class DDIMSampler(object):
 
             # TODO
             for k in range(self.K):
-                break
                 if not c_opt:
                     break
 
