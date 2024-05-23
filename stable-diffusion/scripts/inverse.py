@@ -432,6 +432,7 @@ def main():
             all_samples = list()
             for n in trange(opt.n_iter, desc="Sampling"):
                 for prompts in tqdm(data, desc="data"):
+                    print(prompts)
                     uc = None
                     if opt.ffhq256:
                         shape = [opt.C, opt.H // opt.f, opt.W // opt.f]
