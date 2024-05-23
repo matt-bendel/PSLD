@@ -219,6 +219,8 @@ class DDIMSampler(object):
 
             # TODO
             for k in range(self.K):
+                self.opt.zero_grad()
+
                 if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
                     e_t = self.model.apply_model(z_t, t, self.optimal_c)
                 else:
@@ -263,7 +265,6 @@ class DDIMSampler(object):
                 meas_pred_2 = operator.forward(pred_x_0, mask=ip_mask)
 
                 loss = torch.linalg.norm(meas_pred_2 - measurements) ** 2
-                self.opt.zero_grad()
                 loss.backward()
                 self.opt.step()
                 print(f'TEXT LOSS: {loss.item()}')
@@ -271,11 +272,11 @@ class DDIMSampler(object):
             z_t.requires_grad = True
 
             if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
-                e_t = self.model.apply_model(z_t, t, self.optimal_c)
+                e_t = self.model.apply_model(z_t, t, self.optimal_c.detach())
             else:
                 x_in = torch.cat([z_t] * 2)
                 t_in = torch.cat([t] * 2)
-                c_in = torch.cat([unconditional_conditioning, self.optimal_c])
+                c_in = torch.cat([unconditional_conditioning, self.optimal_c.detach()])
                 e_t_uncond, e_t = self.model.apply_model(x_in, t_in, c_in).chunk(2)
                 e_t = e_t_uncond + unconditional_guidance_scale * (e_t - e_t_uncond)
 
