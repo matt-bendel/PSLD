@@ -100,7 +100,7 @@ def main():
     parser.add_argument(
         "--ddim_steps",
         type=int,
-        default=100,
+        default=200,
         help="number of ddim sampling steps",
     )
     parser.add_argument(
@@ -174,7 +174,7 @@ def main():
     parser.add_argument(
         "--scale",
         type=float,
-        default=5,
+        default=3,
         help="unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))",
     )
     parser.add_argument(
