@@ -20,7 +20,7 @@ class DDIMSampler(object):
         # TODO
         self.optimal_c = None
         self.opt = None
-        self.K = 2
+        self.K = 1
 
     def register_buffer(self, name, attr):
         if type(attr) == torch.Tensor:
@@ -186,8 +186,8 @@ class DDIMSampler(object):
                 img_orig = self.model.q_sample(x0, ts)  # TODO: deterministic forward pass?
                 img = img_orig * mask + (1. - mask) * img
 
-            if i > total_steps / 10:
-                c_opt = True
+            # if i > total_steps / 10:
+            c_opt = True
 
             outs = self.p_sample_ddim(img, cond, ts, index=index, use_original_steps=ddim_use_original_steps,
                                       quantize_denoised=quantize_denoised, temperature=temperature,
@@ -229,6 +229,7 @@ class DDIMSampler(object):
 
             # TODO
             for k in range(self.K):
+                break
                 if not c_opt:
                     break
 
