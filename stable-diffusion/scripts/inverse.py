@@ -456,7 +456,8 @@ def main():
                             uc = model.get_learned_conditioning(batch_size * [""])
                         if isinstance(prompts, tuple):
                             prompts = list(prompts)
-                            prompts = ['A realistic human face']
+
+                        prompts = ['A realistic human face']
 
                         c = model.get_learned_conditioning(prompts)
 
