@@ -100,7 +100,7 @@ def main():
     parser.add_argument(
         "--ddim_steps",
         type=int,
-        default=1000,
+        default=50,
         help="number of ddim sampling steps",
     )
     parser.add_argument(
@@ -456,6 +456,7 @@ def main():
                             uc = model.get_learned_conditioning(batch_size * [""])
                         if isinstance(prompts, tuple):
                             prompts = list(prompts)
+                            prompts = ['A face']
 
                         c = model.get_learned_conditioning(prompts)
 
