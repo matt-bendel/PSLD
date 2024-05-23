@@ -104,7 +104,7 @@ class DDIMSampler(object):
         if self.optimal_c is None:
             self.optimal_c = conditioning
             self.optimal_c.requires_grad = True
-            self.opt = Adam([self.optimal_c], lr=1e-5)
+            self.opt = Adam([self.optimal_c], lr=1e-4)
 
         print(f'GUIDANCE: {unconditional_guidance_scale}')
         self.make_schedule(ddim_num_steps=S, ddim_eta=eta, verbose=verbose)
@@ -263,7 +263,7 @@ class DDIMSampler(object):
                 pred_x_0 = self.model.differentiable_decode_first_stage(pred_z_0_prime)
                 meas_pred_2 = operator.forward(pred_x_0, mask=ip_mask)
 
-                loss = torch.linalg.norm(meas_pred_2 - measurements) ** 2
+                loss = 1 / meas_error * torch.linalg.norm(meas_pred_2 - measurements) ** 2
                 loss.backward()
                 self.opt.step()
                 print(f'TEXT LOSS: {loss.item()}')
