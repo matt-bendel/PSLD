@@ -20,7 +20,7 @@ class DDIMSampler(object):
         # TODO
         self.optimal_c = None
         self.opt = None
-        self.K = 1
+        self.K = 2
 
     def register_buffer(self, name, attr):
         if type(attr) == torch.Tensor:
@@ -102,7 +102,11 @@ class DDIMSampler(object):
 
         # TODO
         if self.optimal_c is None:
-            self.optimal_c = unconditional_conditioning
+            if unconditional_conditioning is None:
+                self.optimal_c = unconditional_conditioning
+            else:
+                self.optimal_c = conditioning
+
             self.optimal_c.requires_grad = True
             self.opt = Adam([self.optimal_c], lr=1e-4)
 
