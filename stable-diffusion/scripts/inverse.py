@@ -456,9 +456,13 @@ def main():
                             uc = model.get_learned_conditioning(batch_size * [""])
                         if isinstance(prompts, tuple):
                             prompts = list(prompts)
-                        print(prompts)
-                        print('HEREEEE')
+
                         c = model.get_learned_conditioning(prompts)
+
+                        print(c[0])
+                        print(uc[0])
+                        exit()
+
                         shape = [opt.C, opt.H // opt.f, opt.W // opt.f]
                         samples_ddim, _ = sampler.sample(S=opt.ddim_steps,
                                                         conditioning=c,

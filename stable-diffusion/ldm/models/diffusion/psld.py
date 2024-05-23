@@ -215,6 +215,7 @@ class DDIMSampler(object):
         ##########################################
         if inpainting:
             z_t = torch.clone(x.detach())
+            z_t.requires_grad = True
 
             # TODO
             # for k in range(self.K):
@@ -263,8 +264,6 @@ class DDIMSampler(object):
                 e_t = e_t_uncond + unconditional_guidance_scale * (e_t - e_t_uncond)
 
             # e_t = self.model.apply_model(z_t, t, self.optimal_c)
-
-            z_t.requires_grad = True
 
             if score_corrector is not None:
                 assert self.model.parameterization == "eps"
