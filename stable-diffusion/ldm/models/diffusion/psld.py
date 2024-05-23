@@ -268,7 +268,7 @@ class DDIMSampler(object):
                 meas_pred = noiser(meas_pred)
 
                 loss = torch.linalg.norm(meas_pred - measurements) ** 2
-                gradients = torch.autograd.grad(loss, inputs=self.optimal_c)[0]
+                gradients = 1 / loss.detach() * torch.autograd.grad(loss, inputs=self.optimal_c)[0]
                 self.optimal_c = self.optimal_c - gradients
 
                 print(f'TEXT LOSS: {loss.item()}')
