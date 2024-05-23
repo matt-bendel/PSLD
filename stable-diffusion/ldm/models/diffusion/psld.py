@@ -104,7 +104,7 @@ class DDIMSampler(object):
         if self.optimal_c is None:
             self.optimal_c = conditioning
             self.optimal_c.requires_grad = True
-            self.opt = Adam([self.optimal_c], lr=5e-2)
+            self.opt = Adam([self.optimal_c], lr=1e-3)
 
         print(self.optimal_c.detach().cpu().numpy()[0])
 
