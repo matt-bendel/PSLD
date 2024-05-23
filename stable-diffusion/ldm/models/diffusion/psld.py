@@ -104,7 +104,9 @@ class DDIMSampler(object):
         if self.optimal_c is None:
             self.optimal_c = conditioning
             self.optimal_c.requires_grad = True
-            self.opt = Adam([self.optimal_c], lr=1e-4)
+            self.opt = Adam([self.optimal_c], lr=1e-3)
+
+        print(self.optimal_c.detach().cpu().numpy()[0])
 
         print(f'GUIDANCE: {unconditional_guidance_scale}')
         self.make_schedule(ddim_num_steps=S, ddim_eta=eta, verbose=verbose)
@@ -133,6 +135,8 @@ class DDIMSampler(object):
                                                     general_inverse = general_inverse, noiser = noiser,
                                                     ffhq256=ffhq256
                                                     )
+        print(self.optimal_c.detach().cpu().numpy()[0])
+
         return samples, intermediates
 
     ## lr
