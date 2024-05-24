@@ -1,6 +1,6 @@
 export CUDA_VISIBLE_DEVICES='2'
 python scripts/inverse.py \
-    --file_id='00015.png' \
+    --file_id='00014.png' \
     --task_config='configs/box_inpainting_config_psld.yaml' \
     --inpainting=1 \
     --general_inverse=0 \
