@@ -190,6 +190,8 @@ class DDIMSampler(object):
 
             if i > 0 and i % 10 == 0:
                 c_opt = True
+            else:
+                c_opt = False
 
             outs = self.p_sample_ddim(img, cond, ts, index=index, use_original_steps=ddim_use_original_steps,
                                       quantize_denoised=quantize_denoised, temperature=temperature,
