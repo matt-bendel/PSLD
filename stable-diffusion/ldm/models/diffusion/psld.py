@@ -269,7 +269,7 @@ class DDIMSampler(object):
                 meas_pred = operator.forward(image_pred, mask=ip_mask)
                 meas_pred = noiser(meas_pred)
 
-                loss = torch.linalg.norm(meas_pred - measurements) ** 2
+                loss = torch.linalg.norm(meas_pred - measurements)
                 gradients = 1 / loss.detach() * torch.autograd.grad(loss, inputs=self.optimal_c)[0]
                 self.optimal_c = self.optimal_c - gradients
 
