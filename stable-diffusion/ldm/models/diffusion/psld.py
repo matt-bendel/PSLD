@@ -302,6 +302,8 @@ class DDIMSampler(object):
             
             # current prediction for x_0
             pred_z_0 = (z_t - sqrt_one_minus_at * e_t) / a_t.sqrt()
+
+            #######
             image_pred = self.model.decode_first_stage(pred_z_0)
             ortho_project = image_pred - operator.transpose(operator.forward(image_pred, mask=ip_mask))
             parallel_project = operator.transpose(measurements)
@@ -342,7 +344,7 @@ class DDIMSampler(object):
 
             # gradients = torch.autograd.grad(error, inputs=z_t)[0]
             # z_prev = z_prev - gradients
-            print('Loss: ', error.item())
+            # print('Loss: ', error.item())
             
             return z_prev.detach(), pred_z_0.detach()
         
