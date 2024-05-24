@@ -228,50 +228,50 @@ class DDIMSampler(object):
             z_t = torch.clone(x.detach())
 
             # TODO
-            # for k in range(self.K):
-            #     if not c_opt:
-            #         break
-            #
-            #     if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
-            #         e_t = self.model.apply_model(z_t, t, self.optimal_c)
-            #     else:
-            #         # 2 NFEs, No good!!
-            #         with torch.no_grad():
-            #             e_t_uncond = self.model.apply_model(z_t, t, unconditional_conditioning)
-            #
-            #         e_t = self.model.apply_model(z_t, t, self.optimal_c)
-            #
-            #         e_t = e_t_uncond + unconditional_guidance_scale * (e_t - e_t_uncond)
-            #
-            #     if score_corrector is not None:
-            #         assert self.model.parameterization == "eps"
-            #         e_t = score_corrector.modify_score(self.model, e_t, z_t, t, c, **corrector_kwargs)
-            #
-            #     alphas = self.model.alphas_cumprod if use_original_steps else self.ddim_alphas
-            #     alphas_prev = self.model.alphas_cumprod_prev if use_original_steps else self.ddim_alphas_prev
-            #     sqrt_one_minus_alphas = self.model.sqrt_one_minus_alphas_cumprod if use_original_steps else self.ddim_sqrt_one_minus_alphas
-            #     sigmas = self.model.ddim_sigmas_for_original_num_steps if use_original_steps else self.ddim_sigmas
-            #     # select parameters corresponding to the currently considered timestep
-            #     a_t = torch.full((b, 1, 1, 1), alphas[index], device=device)
-            #     a_prev = torch.full((b, 1, 1, 1), alphas_prev[index], device=device)
-            #     sigma_t = torch.full((b, 1, 1, 1), sigmas[index], device=device)
-            #     sqrt_one_minus_at = torch.full((b, 1, 1, 1), sqrt_one_minus_alphas[index], device=device)
-            #
-            #     # current prediction for x_0
-            #     pred_z_0 = (z_t - sqrt_one_minus_at * e_t) / a_t.sqrt()
-            #
-            #     if quantize_denoised:
-            #         pred_z_0, _, *_ = self.model.first_stage_model.quantize(pred_z_0)
-            #
-            #     image_pred = self.model.differentiable_decode_first_stage(pred_z_0)
-            #     meas_pred = operator.forward(image_pred, mask=ip_mask)
-            #     meas_pred = noiser(meas_pred)
-            #
-            #     loss = torch.linalg.norm(meas_pred - measurements) ** 2
-            #     gradients = 1 / loss.detach() * torch.autograd.grad(loss, inputs=self.optimal_c)[0]
-            #     self.optimal_c = self.optimal_c - gradients
-            #
-            #     print(f'TEXT LOSS: {loss.item()}')
+            for k in range(self.K):
+                if not c_opt:
+                    break
+
+                if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
+                    e_t = self.model.apply_model(z_t, t, self.optimal_c)
+                else:
+                    # 2 NFEs, No good!!
+                    with torch.no_grad():
+                        e_t_uncond = self.model.apply_model(z_t, t, unconditional_conditioning)
+
+                    e_t = self.model.apply_model(z_t, t, self.optimal_c)
+
+                    e_t = e_t_uncond + unconditional_guidance_scale * (e_t - e_t_uncond)
+
+                if score_corrector is not None:
+                    assert self.model.parameterization == "eps"
+                    e_t = score_corrector.modify_score(self.model, e_t, z_t, t, c, **corrector_kwargs)
+
+                alphas = self.model.alphas_cumprod if use_original_steps else self.ddim_alphas
+                alphas_prev = self.model.alphas_cumprod_prev if use_original_steps else self.ddim_alphas_prev
+                sqrt_one_minus_alphas = self.model.sqrt_one_minus_alphas_cumprod if use_original_steps else self.ddim_sqrt_one_minus_alphas
+                sigmas = self.model.ddim_sigmas_for_original_num_steps if use_original_steps else self.ddim_sigmas
+                # select parameters corresponding to the currently considered timestep
+                a_t = torch.full((b, 1, 1, 1), alphas[index], device=device)
+                a_prev = torch.full((b, 1, 1, 1), alphas_prev[index], device=device)
+                sigma_t = torch.full((b, 1, 1, 1), sigmas[index], device=device)
+                sqrt_one_minus_at = torch.full((b, 1, 1, 1), sqrt_one_minus_alphas[index], device=device)
+
+                # current prediction for x_0
+                pred_z_0 = (z_t - sqrt_one_minus_at * e_t) / a_t.sqrt()
+
+                if quantize_denoised:
+                    pred_z_0, _, *_ = self.model.first_stage_model.quantize(pred_z_0)
+
+                image_pred = self.model.differentiable_decode_first_stage(pred_z_0)
+                meas_pred = operator.forward(image_pred, mask=ip_mask)
+                meas_pred = noiser(meas_pred)
+
+                loss = torch.linalg.norm(meas_pred - measurements) ** 2
+                gradients = 1 / loss.detach() * torch.autograd.grad(loss, inputs=self.optimal_c)[0]
+                self.optimal_c = self.optimal_c - gradients
+
+                print(f'TEXT LOSS: {loss.item()}')
 
             # z_t.requires_grad = True
 
@@ -326,10 +326,10 @@ class DDIMSampler(object):
             
             
             ##############################################
-            # image_pred = self.model.differentiable_decode_first_stage(pred_z_0)
-            # meas_pred = operator.forward(image_pred,mask=ip_mask)
-            # meas_pred = noiser(meas_pred)
-            # meas_error = torch.linalg.norm(meas_pred - measurements)
+            image_pred = self.model.differentiable_decode_first_stage(pred_z_0)
+            meas_pred = operator.forward(image_pred,mask=ip_mask)
+            meas_pred = noiser(meas_pred)
+            meas_error = torch.linalg.norm(meas_pred - measurements)
             
             # ortho_project = image_pred - operator.transpose(operator.forward(image_pred, mask=ip_mask))
             # parallel_project = operator.transpose(measurements)
@@ -342,10 +342,10 @@ class DDIMSampler(object):
             # inpaint_error = torch.linalg.norm(encoded_z_0 - pred_z_0)
             
             # error = inpaint_error * gamma + meas_error * omega
-            # error = meas_error * omega
+            error = meas_error
 
-            # gradients = torch.autograd.grad(error, inputs=z_t)[0]
-            # z_prev = z_prev - gradients
+            gradients = torch.autograd.grad(error, inputs=z_t)[0]
+            z_prev = z_prev - 1 / meas_error.detach() * gradients
             # print('Loss: ', error.item())
             
             return z_prev.detach(), pred_z_0.detach()
