@@ -453,11 +453,11 @@ def main():
                     else:
                         # pdb.set_trace()
                         if opt.scale != 1.0 :
-                            uc = model.get_learned_conditioning(batch_size * ["A realistic human face"])
+                            uc = model.get_learned_conditioning(batch_size * [""])
                         if isinstance(prompts, tuple):
                             prompts = list(prompts)
 
-                        prompts = ['A man in a gray hoodie with dark hair']
+                        prompts = ['']
 
                         c = model.get_learned_conditioning(prompts)
 
