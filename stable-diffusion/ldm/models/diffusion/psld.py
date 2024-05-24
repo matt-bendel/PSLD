@@ -186,7 +186,7 @@ class DDIMSampler(object):
                 img_orig = self.model.q_sample(x0, ts)  # TODO: deterministic forward pass?
                 img = img_orig * mask + (1. - mask) * img
 
-            if i > 0:
+            if i > total_steps / 3 and i % 10 == 0:
                 c_opt = True
 
             outs = self.p_sample_ddim(img, cond, ts, index=index, use_original_steps=ddim_use_original_steps,
@@ -304,12 +304,13 @@ class DDIMSampler(object):
             pred_z_0 = (z_t - sqrt_one_minus_at * e_t) / a_t.sqrt()
 
             #######
-            image_pred = self.model.decode_first_stage(pred_z_0)
-            ortho_project = image_pred - operator.transpose(operator.forward(image_pred, mask=ip_mask))
-            parallel_project = operator.transpose(measurements)
-            inpainted_image = parallel_project + ortho_project
-            encoded_z_0 = self.model.encode_first_stage(inpainted_image)
-            pred_z_0 = self.model.get_first_stage_encoding(encoded_z_0)
+            if c_opt:
+                image_pred = self.model.decode_first_stage(pred_z_0)
+                ortho_project = image_pred - operator.transpose(operator.forward(image_pred, mask=ip_mask))
+                parallel_project = operator.transpose(measurements)
+                inpainted_image = parallel_project + ortho_project
+                encoded_z_0 = self.model.encode_first_stage(inpainted_image)
+                pred_z_0 = self.model.get_first_stage_encoding(encoded_z_0)
             
             if quantize_denoised:
                 pred_z_0, _, *_ = self.model.first_stage_model.quantize(pred_z_0)
