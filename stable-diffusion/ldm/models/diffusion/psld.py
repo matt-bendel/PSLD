@@ -282,7 +282,7 @@ class DDIMSampler(object):
 
                 print(f'TEXT LOSS: {loss.item()}')
 
-            # z_t.requires_grad = True
+            z_t.requires_grad = True
 
             if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
                 e_t = self.model.apply_model(z_t, t, self.optimal_c.detach())
