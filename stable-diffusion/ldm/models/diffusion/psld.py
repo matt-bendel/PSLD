@@ -339,23 +339,23 @@ class DDIMSampler(object):
             meas_pred = operator.forward(image_pred,mask=ip_mask)
             meas_pred = noiser(meas_pred)
             meas_error = torch.linalg.norm(meas_pred - measurements)
-            
+
             # ortho_project = image_pred - operator.transpose(operator.forward(image_pred, mask=ip_mask))
             # parallel_project = operator.transpose(measurements)
             # inpainted_image = parallel_project + ortho_project
-            
+
             # pdb.set_trace()
             # encoded_z_0 = self.model.encode_first_stage(inpainted_image) if ffhq256 else self.model.encode_first_stage(inpainted_image)
             # encoded_z_0 = self.model.encode_first_stage(inpainted_image.type(torch.float32))
             # encoded_z_0 = self.model.get_first_stage_encoding(encoded_z_0)
             # inpaint_error = torch.linalg.norm(encoded_z_0 - pred_z_0)
-            
+
             # error = inpaint_error * gamma + meas_error * omega
             error = meas_error
 
             gradients = torch.autograd.grad(error, inputs=z_t)[0]
             z_prev = z_prev - 1 / meas_error.detach() * gradients
-            # print('Loss: ', error.item())
+            print('Loss: ', error.item())
             
             return z_prev.detach(), pred_z_0.detach()
         
