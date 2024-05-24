@@ -114,7 +114,7 @@ class DDIMSampler(object):
         size = (batch_size, C, H, W)
         print(f'Data shape for DDIM sampling is {size}, eta {eta}')
 
-        samples, intermediates = self.ddim_sampling(conditioning, size,
+        samples, intermediates, meas_errors = self.ddim_sampling(conditioning, size,
                                                     callback=callback,
                                                     img_callback=img_callback,
                                                     quantize_denoised=quantize_x0,
@@ -136,7 +136,7 @@ class DDIMSampler(object):
                                                     )
         print(self.optimal_c.detach().cpu().numpy()[0])
 
-        return samples, intermediates
+        return samples, intermediates, meas_errors
 
     ## lr
     # @torch.no_grad()
