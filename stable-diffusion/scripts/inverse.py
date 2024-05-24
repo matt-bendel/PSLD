@@ -457,7 +457,7 @@ def main():
                         if isinstance(prompts, tuple):
                             prompts = list(prompts)
 
-                        prompts = batch_size * ['']
+                        prompts = batch_size * ['A realistic photo of a mans face']
 
                         c = model.get_learned_conditioning(prompts)
 
