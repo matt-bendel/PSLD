@@ -308,7 +308,8 @@ class DDIMSampler(object):
             ortho_project = image_pred - operator.transpose(operator.forward(image_pred, mask=ip_mask))
             parallel_project = operator.transpose(measurements)
             inpainted_image = parallel_project + ortho_project
-            pred_z_0 = self.model.encode_first_stage(inpainted_image)
+            encoded_z_0 = self.model.encode_first_stage(inpainted_image)
+            pred_z_0 = self.model.get_first_stage_encoding(encoded_z_0)
             
             if quantize_denoised:
                 pred_z_0, _, *_ = self.model.first_stage_model.quantize(pred_z_0)
