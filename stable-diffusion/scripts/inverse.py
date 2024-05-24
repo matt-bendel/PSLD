@@ -174,7 +174,7 @@ def main():
     parser.add_argument(
         "--scale",
         type=float,
-        default=7.5,
+        default=3,
         help="unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))",
     )
     parser.add_argument(
@@ -456,8 +456,6 @@ def main():
                             uc = model.get_learned_conditioning(batch_size * [""])
                         if isinstance(prompts, tuple):
                             prompts = list(prompts)
-
-                        prompts = batch_size * ['']
 
                         c = model.get_learned_conditioning(prompts)
 
