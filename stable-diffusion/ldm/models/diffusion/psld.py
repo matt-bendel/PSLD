@@ -229,6 +229,7 @@ class DDIMSampler(object):
 
             # TODO
             for k in range(self.K):
+                break
                 if not c_opt:
                     break
 
