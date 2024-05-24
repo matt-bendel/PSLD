@@ -173,6 +173,8 @@ class DDIMSampler(object):
         iterator = tqdm(time_range, desc='DDIM Sampler', total=total_steps)
 
         c_opt = False
+        dc = False
+
         for i, step in enumerate(iterator):
             self.optimal_c = self.optimal_c.detach()
             self.optimal_c.requires_grad = True
@@ -186,8 +188,15 @@ class DDIMSampler(object):
                 img_orig = self.model.q_sample(x0, ts)  # TODO: deterministic forward pass?
                 img = img_orig * mask + (1. - mask) * img
 
-            if i > total_steps / 2 and i % 10 == 0:
+            if i > total_steps / 3 and i % 10 == 0:
                 c_opt = True
+            else:
+                c_opt = False
+
+            if i > 2 * total_steps / 3 and i % 10 == 0:
+                dc = True
+            else:
+                dc = False
 
             outs = self.p_sample_ddim(img, cond, ts, index=index, use_original_steps=ddim_use_original_steps,
                                       quantize_denoised=quantize_denoised, temperature=temperature,
@@ -200,7 +209,7 @@ class DDIMSampler(object):
                                       gamma_scale = index/total_steps,
                                       general_inverse=general_inverse, noiser=noiser,
                                       ffhq256=ffhq256,
-                                      c_opt=c_opt)
+                                      c_opt=c_opt, dc=dc)
             img, pred_x0 = outs
             if callback: callback(i)
             if img_callback: img_callback(pred_x0, i)
@@ -218,7 +227,7 @@ class DDIMSampler(object):
                       ip_mask=None, measurements = None, operator = None, gamma=1, inpainting=False,
                       gamma_scale = None, omega = 1e-1,
                       general_inverse=False,noiser=None,
-                      ffhq256=False, c_opt=False):
+                      ffhq256=False, c_opt=False, dc=False):
         b, *_, device = *x.shape, x.device
            
         ##########################################
@@ -304,7 +313,7 @@ class DDIMSampler(object):
             pred_z_0 = (z_t - sqrt_one_minus_at * e_t) / a_t.sqrt()
 
             #######
-            if c_opt:
+            if dc:
                 image_pred = self.model.decode_first_stage(pred_z_0)
                 ortho_project = image_pred - operator.transpose(operator.forward(image_pred, mask=ip_mask))
                 parallel_project = operator.transpose(measurements)
