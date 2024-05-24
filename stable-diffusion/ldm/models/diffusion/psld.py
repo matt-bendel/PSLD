@@ -188,15 +188,8 @@ class DDIMSampler(object):
                 img_orig = self.model.q_sample(x0, ts)  # TODO: deterministic forward pass?
                 img = img_orig * mask + (1. - mask) * img
 
-            if i > total_steps / 3 and i % 10 == 0:
+            if i > 0:
                 c_opt = True
-            else:
-                c_opt = False
-
-            if i > 2 * total_steps / 3 and i % 10 == 0:
-                dc = True
-            else:
-                dc = False
 
             outs = self.p_sample_ddim(img, cond, ts, index=index, use_original_steps=ddim_use_original_steps,
                                       quantize_denoised=quantize_denoised, temperature=temperature,
@@ -313,13 +306,13 @@ class DDIMSampler(object):
             pred_z_0 = (z_t - sqrt_one_minus_at * e_t) / a_t.sqrt()
 
             #######
-            if dc:
-                image_pred = self.model.decode_first_stage(pred_z_0)
-                ortho_project = image_pred - operator.transpose(operator.forward(image_pred, mask=ip_mask))
-                parallel_project = operator.transpose(measurements)
-                inpainted_image = parallel_project + ortho_project
-                encoded_z_0 = self.model.encode_first_stage(inpainted_image)
-                pred_z_0 = self.model.get_first_stage_encoding(encoded_z_0)
+            # if dc:
+            #     image_pred = self.model.decode_first_stage(pred_z_0)
+            #     ortho_project = image_pred - operator.transpose(operator.forward(image_pred, mask=ip_mask))
+            #     parallel_project = operator.transpose(measurements)
+            #     inpainted_image = parallel_project + ortho_project
+            #     encoded_z_0 = self.model.encode_first_stage(inpainted_image)
+            #     pred_z_0 = self.model.get_first_stage_encoding(encoded_z_0)
             
             if quantize_denoised:
                 pred_z_0, _, *_ = self.model.first_stage_model.quantize(pred_z_0)
@@ -335,28 +328,27 @@ class DDIMSampler(object):
             
             
             ##############################################
-            if not dc:
-                image_pred = self.model.differentiable_decode_first_stage(pred_z_0)
-                meas_pred = operator.forward(image_pred,mask=ip_mask)
-                meas_pred = noiser(meas_pred)
-                meas_error = torch.linalg.norm(meas_pred - measurements)
+            image_pred = self.model.differentiable_decode_first_stage(pred_z_0)
+            meas_pred = operator.forward(image_pred,mask=ip_mask)
+            meas_pred = noiser(meas_pred)
+            meas_error = torch.linalg.norm(meas_pred - measurements)
 
-                # ortho_project = image_pred - operator.transpose(operator.forward(image_pred, mask=ip_mask))
-                # parallel_project = operator.transpose(measurements)
-                # inpainted_image = parallel_project + ortho_project
+            ortho_project = image_pred - operator.transpose(operator.forward(image_pred, mask=ip_mask))
+            parallel_project = operator.transpose(measurements)
+            inpainted_image = parallel_project + ortho_project
 
-                # pdb.set_trace()
-                # encoded_z_0 = self.model.encode_first_stage(inpainted_image) if ffhq256 else self.model.encode_first_stage(inpainted_image)
-                # encoded_z_0 = self.model.encode_first_stage(inpainted_image.type(torch.float32))
-                # encoded_z_0 = self.model.get_first_stage_encoding(encoded_z_0)
-                # inpaint_error = torch.linalg.norm(encoded_z_0 - pred_z_0)
+            # pdb.set_trace()
+            # encoded_z_0 = self.model.encode_first_stage(inpainted_image) if ffhq256 else self.model.encode_first_stage(inpainted_image)
+            encoded_z_0 = self.model.encode_first_stage(inpainted_image.type(torch.float32))
+            encoded_z_0 = self.model.get_first_stage_encoding(encoded_z_0)
+            inpaint_error = torch.linalg.norm(encoded_z_0 - pred_z_0)
 
-                # error = inpaint_error * gamma + meas_error * omega
-                error = meas_error
+            error = inpaint_error * gamma + meas_error * omega
+            # error = meas_error
 
-                gradients = torch.autograd.grad(error, inputs=z_t)[0]
-                z_prev = z_prev - 1 / meas_error.detach() * gradients
-                print('Loss: ', error.item())
+            gradients = torch.autograd.grad(error, inputs=z_t)[0]
+            z_prev = z_prev - gradients
+            print('Loss: ', error.item())
             
             return z_prev.detach(), pred_z_0.detach()
         
