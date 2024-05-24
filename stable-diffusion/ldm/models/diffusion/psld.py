@@ -175,6 +175,8 @@ class DDIMSampler(object):
         c_opt = False
         dc = False
 
+        meas_errors = []
+
         for i, step in enumerate(iterator):
             self.optimal_c = self.optimal_c.detach()
             self.optimal_c.requires_grad = True
@@ -188,7 +190,7 @@ class DDIMSampler(object):
                 img_orig = self.model.q_sample(x0, ts)  # TODO: deterministic forward pass?
                 img = img_orig * mask + (1. - mask) * img
 
-            if i > 0 and i % 10 == 0:
+            if i > 0 and i % 5 == 0:
                 c_opt = True
             else:
                 c_opt = False
@@ -205,7 +207,9 @@ class DDIMSampler(object):
                                       general_inverse=general_inverse, noiser=noiser,
                                       ffhq256=ffhq256,
                                       c_opt=c_opt, dc=dc)
-            img, pred_x0 = outs
+            img, pred_x0, meas_error = outs
+            meas_errors.append(meas_error)
+
             if callback: callback(i)
             if img_callback: img_callback(pred_x0, i)
 
@@ -213,7 +217,7 @@ class DDIMSampler(object):
                 intermediates['x_inter'].append(img)
                 intermediates['pred_x0'].append(pred_x0)
 
-        return img, intermediates
+        return img, intermediates, meas_errors
 
     ######################
     def p_sample_ddim(self, x, c, t, index, repeat_noise=False, use_original_steps=False, quantize_denoised=False,
@@ -233,6 +237,7 @@ class DDIMSampler(object):
 
             # TODO
             for k in range(self.K):
+                break
                 if not c_opt:
                     break
 
@@ -331,28 +336,28 @@ class DDIMSampler(object):
             
             ##############################################
             image_pred = self.model.differentiable_decode_first_stage(pred_z_0)
-            meas_pred = operator.forward(image_pred,mask=ip_mask)
+            meas_pred = operator.forward(image_pred, mask=ip_mask)
             meas_pred = noiser(meas_pred)
             meas_error = torch.linalg.norm(meas_pred - measurements)
 
-            ortho_project = image_pred - operator.transpose(operator.forward(image_pred, mask=ip_mask))
-            parallel_project = operator.transpose(measurements)
-            inpainted_image = parallel_project + ortho_project
+            # ortho_project = image_pred - operator.transpose(operator.forward(image_pred, mask=ip_mask))
+            # parallel_project = operator.transpose(measurements)
+            # inpainted_image = parallel_project + ortho_project
 
             # pdb.set_trace()
             # encoded_z_0 = self.model.encode_first_stage(inpainted_image) if ffhq256 else self.model.encode_first_stage(inpainted_image)
-            encoded_z_0 = self.model.encode_first_stage(inpainted_image.type(torch.float32))
-            encoded_z_0 = self.model.get_first_stage_encoding(encoded_z_0)
-            inpaint_error = torch.linalg.norm(encoded_z_0 - pred_z_0)
+            # encoded_z_0 = self.model.encode_first_stage(inpainted_image.type(torch.float32))
+            # encoded_z_0 = self.model.get_first_stage_encoding(encoded_z_0)
+            # inpaint_error = torch.linalg.norm(encoded_z_0 - pred_z_0)
 
-            error = inpaint_error * gamma + meas_error * omega
-            # error = meas_error
+            # error = inpaint_error * gamma + meas_error * omega
+            error = meas_error
 
-            gradients = torch.autograd.grad(error, inputs=z_t)[0]
+            gradients = 1 / meas_error.detach() * torch.autograd.grad(error, inputs=z_t)[0]
             z_prev = z_prev - gradients
             print('Loss: ', error.item())
             
-            return z_prev.detach(), pred_z_0.detach()
+            return z_prev.detach(), pred_z_0.detach(), meas_error.detach().cpu().numpy()
         
         elif general_inverse:
             print('Running general inverse module...')

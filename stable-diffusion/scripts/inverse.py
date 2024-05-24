@@ -100,7 +100,7 @@ def main():
     parser.add_argument(
         "--ddim_steps",
         type=int,
-        default=200,
+        default=1000,
         help="number of ddim sampling steps",
     )
     parser.add_argument(
@@ -460,7 +460,7 @@ def main():
                         c = model.get_learned_conditioning(prompts)
 
                         shape = [opt.C, opt.H // opt.f, opt.W // opt.f]
-                        samples_ddim, _ = sampler.sample(S=opt.ddim_steps,
+                        samples_ddim, _, meas_errors = sampler.sample(S=opt.ddim_steps,
                                                         conditioning=c,
                                                         batch_size=opt.n_samples,
                                                         shape=shape,
@@ -490,6 +490,10 @@ def main():
                     
                     if not opt.skip_save:
                         for x_sample in x_checked_image_torch:
+                            plt.figure()
+                            plt.semilogy(range(1000), meas_errors)
+                            plt.savefig('tmp.png')
+                            plt.close()
                             if opt.inpainting:  # Inpainting gluing logic as in SD inpaint.py
                                 image = torch.clamp((org_image+1.0)/2.0, min=0.0, max=1.0)
                                 image = image.cpu().numpy()
