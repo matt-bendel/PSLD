@@ -20,7 +20,7 @@ class DDIMSampler(object):
         # TODO
         self.optimal_c = None
         self.opt = None
-        self.K = 10
+        self.K = 5
 
     def register_buffer(self, name, attr):
         if type(attr) == torch.Tensor:
@@ -317,7 +317,7 @@ class DDIMSampler(object):
                 error = inpaint_error * gamma + meas_error * omega
 
                 gradients = torch.autograd.grad(error, inputs=optimal_c)[0]
-                optimal_c = optimal_c - gradients
+                optimal_c = optimal_c - 1e-1 * gradients
 
                 print(f'TEXT LOSS: {error.item()}')
 
