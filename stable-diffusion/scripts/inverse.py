@@ -100,7 +100,7 @@ def main():
     parser.add_argument(
         "--ddim_steps",
         type=int,
-        default=1000,
+        default=250,
         help="number of ddim sampling steps",
     )
     parser.add_argument(
@@ -174,7 +174,7 @@ def main():
     parser.add_argument(
         "--scale",
         type=float,
-        default=3,
+        default=1,
         help="unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))",
     )
     parser.add_argument(
@@ -457,10 +457,12 @@ def main():
                         if isinstance(prompts, tuple):
                             prompts = list(prompts)
 
+                        prompts = batch_size * [""]
+
                         c = model.get_learned_conditioning(prompts)
 
                         shape = [opt.C, opt.H // opt.f, opt.W // opt.f]
-                        samples_ddim, _, meas_errors = sampler.sample(S=opt.ddim_steps,
+                        samples_ddim, _ = sampler.sample(S=opt.ddim_steps,
                                                         conditioning=c,
                                                         batch_size=opt.n_samples,
                                                         shape=shape,
@@ -490,10 +492,10 @@ def main():
                     
                     if not opt.skip_save:
                         for x_sample in x_checked_image_torch:
-                            plt.figure()
-                            plt.semilogy(range(1000), meas_errors)
-                            plt.savefig('tmp.png')
-                            plt.close()
+                            # plt.figure()
+                            # plt.semilogy(range(1000), meas_errors)
+                            # plt.savefig('tmp.png')
+                            # plt.close()
                             if opt.inpainting:  # Inpainting gluing logic as in SD inpaint.py
                                 image = torch.clamp((org_image+1.0)/2.0, min=0.0, max=1.0)
                                 image = image.cpu().numpy()

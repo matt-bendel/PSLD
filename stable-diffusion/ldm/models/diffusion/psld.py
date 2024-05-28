@@ -20,7 +20,7 @@ class DDIMSampler(object):
         # TODO
         self.optimal_c = None
         self.opt = None
-        self.K = 1
+        self.K = 2
 
     def register_buffer(self, name, attr):
         if type(attr) == torch.Tensor:
@@ -103,7 +103,6 @@ class DDIMSampler(object):
         # TODO
         if self.optimal_c is None:
             self.optimal_c = conditioning
-            self.optimal_c.requires_grad = True
 
         print(self.optimal_c.detach().cpu().numpy()[0])
 
@@ -172,30 +171,22 @@ class DDIMSampler(object):
 
         iterator = tqdm(time_range, desc='DDIM Sampler', total=total_steps)
 
-        c_opt = False
-        dc = False
+        c_opt = True
 
         meas_errors = []
 
         for i, step in enumerate(iterator):
-            self.optimal_c = self.optimal_c.detach()
-            self.optimal_c.requires_grad = True
-
             index = total_steps - i - 1
             #print('index:', index)
             ts = torch.full((b,), step, device=device, dtype=torch.long)
+            ts_next = torch.full((b,), step+1, device=device, dtype=torch.long)
 
             if mask is not None:
                 assert x0 is not None
                 img_orig = self.model.q_sample(x0, ts)  # TODO: deterministic forward pass?
                 img = img_orig * mask + (1. - mask) * img
 
-            if i > 0 and i % 5 == 0:
-                c_opt = True
-            else:
-                c_opt = False
-
-            outs = self.p_sample_ddim(img, cond, ts, index=index, use_original_steps=ddim_use_original_steps,
+            outs = self.p_sample_ddim(img, cond, ts, ts_next, index=index, use_original_steps=ddim_use_original_steps,
                                       quantize_denoised=quantize_denoised, temperature=temperature,
                                       noise_dropout=noise_dropout, score_corrector=score_corrector,
                                       corrector_kwargs=corrector_kwargs,
@@ -206,7 +197,7 @@ class DDIMSampler(object):
                                       gamma_scale = index/total_steps,
                                       general_inverse=general_inverse, noiser=noiser,
                                       ffhq256=ffhq256,
-                                      c_opt=c_opt, dc=dc)
+                                      c_opt=c_opt, dc=False)
             img, pred_x0, meas_error = outs
             meas_errors.append(meas_error)
 
@@ -220,7 +211,7 @@ class DDIMSampler(object):
         return img, intermediates, meas_errors
 
     ######################
-    def p_sample_ddim(self, x, c, t, index, repeat_noise=False, use_original_steps=False, quantize_denoised=False,
+    def p_sample_ddim(self, x, c, t, t_next, index, repeat_noise=False, use_original_steps=False, quantize_denoised=False,
                       temperature=1., noise_dropout=0., score_corrector=None, corrector_kwargs=None,
                       unconditional_guidance_scale=1., unconditional_conditioning=None,
                       ip_mask=None, measurements = None, operator = None, gamma=1, inpainting=False,
@@ -228,27 +219,71 @@ class DDIMSampler(object):
                       general_inverse=False,noiser=None,
                       ffhq256=False, c_opt=False, dc=False):
         b, *_, device = *x.shape, x.device
+
+        optimal_c = self.optimal_c
+        optimal_c.requires_grad = True
            
         ##########################################
         ## measurment consistency guided diffusion
         ##########################################
         if inpainting:
             z_t = torch.clone(x.detach())
+            # z_t.requires_grad = True
 
-            # TODO
+            if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
+                e_t = self.model.apply_model(z_t, t, optimal_c.detach())
+            else:
+                x_in = torch.cat([z_t] * 2)
+                t_in = torch.cat([t] * 2)
+                c_in = torch.cat([unconditional_conditioning, optimal_c.detach()])
+                e_t_uncond, e_t = self.model.apply_model(x_in, t_in, c_in).chunk(2)
+                e_t = e_t_uncond + unconditional_guidance_scale * (e_t - e_t_uncond)
+
+
+            if score_corrector is not None:
+                assert self.model.parameterization == "eps"
+                e_t = score_corrector.modify_score(self.model, e_t, z_t, t, c, **corrector_kwargs)
+            
+            
+            alphas = self.model.alphas_cumprod if use_original_steps else self.ddim_alphas
+            alphas_prev = self.model.alphas_cumprod_prev if use_original_steps else self.ddim_alphas_prev
+            sqrt_one_minus_alphas = self.model.sqrt_one_minus_alphas_cumprod if use_original_steps else self.ddim_sqrt_one_minus_alphas
+            sigmas = self.model.ddim_sigmas_for_original_num_steps if use_original_steps else self.ddim_sigmas
+            # select parameters corresponding to the currently considered timestep
+            a_t = torch.full((b, 1, 1, 1), alphas[index], device=device)
+            a_prev = torch.full((b, 1, 1, 1), alphas_prev[index], device=device)
+            sigma_t = torch.full((b, 1, 1, 1), sigmas[index], device=device)
+            sqrt_one_minus_at = torch.full((b, 1, 1, 1), sqrt_one_minus_alphas[index],device=device)
+            
+            # current prediction for x_0
+            pred_z_0 = (z_t - sqrt_one_minus_at * e_t) / a_t.sqrt()
+
+            #######
+            
+            if quantize_denoised:
+                pred_z_0, _, *_ = self.model.first_stage_model.quantize(pred_z_0)
+            
+            
+            # direction pointing to x_t
+            dir_zt = (1. - a_prev - sigma_t**2).sqrt() * e_t
+            noise = sigma_t * noise_like(x.shape, device, repeat_noise) * temperature
+            if noise_dropout > 0.:
+                noise = torch.nn.functional.dropout(noise, p=noise_dropout)
+
+            z_prev = a_prev.sqrt() * pred_z_0 + dir_zt + noise
+
             for k in range(self.K):
-                break
-                if not c_opt:
+                if index == 0:
                     break
 
                 if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
-                    e_t = self.model.apply_model(z_t, t, self.optimal_c)
+                    e_t = self.model.apply_model(z_prev, t_next, optimal_c)
                 else:
                     # 2 NFEs, No good!!
                     with torch.no_grad():
-                        e_t_uncond = self.model.apply_model(z_t, t, unconditional_conditioning)
+                        e_t_uncond = self.model.apply_model(z_prev, t_next, unconditional_conditioning)
 
-                    e_t = self.model.apply_model(z_t, t, self.optimal_c)
+                    e_t = self.model.apply_model(z_t, t, optimal_c)
 
                     e_t = e_t_uncond + unconditional_guidance_scale * (e_t - e_t_uncond)
 
@@ -275,64 +310,29 @@ class DDIMSampler(object):
                 image_pred = self.model.differentiable_decode_first_stage(pred_z_0)
                 meas_pred = operator.forward(image_pred, mask=ip_mask)
                 meas_pred = noiser(meas_pred)
+                meas_error = torch.linalg.norm(meas_pred - measurements)
 
-                loss = torch.linalg.norm(meas_pred - measurements)
-                gradients = 1 / loss.detach() * torch.autograd.grad(loss, inputs=self.optimal_c)[0]
-                self.optimal_c = self.optimal_c - gradients
+                ortho_project = image_pred - operator.transpose(operator.forward(image_pred, mask=ip_mask))
+                parallel_project = operator.transpose(measurements)
+                inpainted_image = parallel_project + ortho_project
 
-                print(f'TEXT LOSS: {loss.item()}')
+                # pdb.set_trace()
+                # encoded_z_0 = self.model.encode_first_stage(inpainted_image) if ffhq256 else self.model.encode_first_stage(inpainted_image)
+                encoded_z_0 = self.model.encode_first_stage(inpainted_image.type(torch.float32))
+                encoded_z_0 = self.model.get_first_stage_encoding(encoded_z_0)
+                inpaint_error = torch.linalg.norm(encoded_z_0 - pred_z_0)
 
-            z_t.requires_grad = True
+                error = inpaint_error * gamma + meas_error * omega
 
-            if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
-                e_t = self.model.apply_model(z_t, t, self.optimal_c.detach())
-            else:
-                x_in = torch.cat([z_t] * 2)
-                t_in = torch.cat([t] * 2)
-                c_in = torch.cat([unconditional_conditioning, self.optimal_c.detach()])
-                e_t_uncond, e_t = self.model.apply_model(x_in, t_in, c_in).chunk(2)
-                e_t = e_t_uncond + unconditional_guidance_scale * (e_t - e_t_uncond)
+                gradients = torch.autograd.grad(error, inputs=optimal_c)[0]
+                optimal_c = optimal_c - gradients
 
+                print(f'TEXT LOSS: {error.item()}')
 
-            if score_corrector is not None:
-                assert self.model.parameterization == "eps"
-                e_t = score_corrector.modify_score(self.model, e_t, z_t, t, c, **corrector_kwargs)
-            
-            
-            alphas = self.model.alphas_cumprod if use_original_steps else self.ddim_alphas
-            alphas_prev = self.model.alphas_cumprod_prev if use_original_steps else self.ddim_alphas_prev
-            sqrt_one_minus_alphas = self.model.sqrt_one_minus_alphas_cumprod if use_original_steps else self.ddim_sqrt_one_minus_alphas
-            sigmas = self.model.ddim_sigmas_for_original_num_steps if use_original_steps else self.ddim_sigmas
-            # select parameters corresponding to the currently considered timestep
-            a_t = torch.full((b, 1, 1, 1), alphas[index], device=device)
-            a_prev = torch.full((b, 1, 1, 1), alphas_prev[index], device=device)
-            sigma_t = torch.full((b, 1, 1, 1), sigmas[index], device=device)
-            sqrt_one_minus_at = torch.full((b, 1, 1, 1), sqrt_one_minus_alphas[index],device=device)
-            
-            # current prediction for x_0
-            pred_z_0 = (z_t - sqrt_one_minus_at * e_t) / a_t.sqrt()
+            self.optimal_c = optimal_c.detach()
 
-            #######
-            # if dc:
-            #     image_pred = self.model.decode_first_stage(pred_z_0)
-            #     ortho_project = image_pred - operator.transpose(operator.forward(image_pred, mask=ip_mask))
-            #     parallel_project = operator.transpose(measurements)
-            #     inpainted_image = parallel_project + ortho_project
-            #     encoded_z_0 = self.model.encode_first_stage(inpainted_image)
-            #     pred_z_0 = self.model.get_first_stage_encoding(encoded_z_0)
-            
-            if quantize_denoised:
-                pred_z_0, _, *_ = self.model.first_stage_model.quantize(pred_z_0)
-            
-            
-            # direction pointing to x_t
-            dir_zt = (1. - a_prev - sigma_t**2).sqrt() * e_t
-            noise = sigma_t * noise_like(x.shape, device, repeat_noise) * temperature
-            if noise_dropout > 0.:
-                noise = torch.nn.functional.dropout(noise, p=noise_dropout)
+            return z_prev.detach(), pred_z_0.detach()
 
-            z_prev = a_prev.sqrt() * pred_z_0 + dir_zt + noise
-            
             
             ##############################################
             image_pred = self.model.differentiable_decode_first_stage(pred_z_0)
