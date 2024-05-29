@@ -174,7 +174,7 @@ def main():
     parser.add_argument(
         "--scale",
         type=float,
-        default=5,
+        default=3,
         help="unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))",
     )
     parser.add_argument(
@@ -453,7 +453,7 @@ def main():
                     else:
                         # pdb.set_trace()
                         if opt.scale != 1.0 :
-                            uc = model.get_learned_conditioning(batch_size * ["A close-up photograph of a little girl's face"])
+                            uc = model.get_learned_conditioning(batch_size * ["A photograph of a human face"])
                         if isinstance(prompts, tuple):
                             prompts = list(prompts)
 
