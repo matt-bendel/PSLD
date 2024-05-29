@@ -100,7 +100,7 @@ def main():
     parser.add_argument(
         "--ddim_steps",
         type=int,
-        default=1000,
+        default=500,
         help="number of ddim sampling steps",
     )
     parser.add_argument(
@@ -174,7 +174,7 @@ def main():
     parser.add_argument(
         "--scale",
         type=float,
-        default=7.5,
+        default=10,
         help="unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))",
     )
     parser.add_argument(
@@ -453,7 +453,7 @@ def main():
                     else:
                         # pdb.set_trace()
                         if opt.scale != 1.0 :
-                            uc = model.get_learned_conditioning(batch_size * ["A realistic image of a little girls face"])
+                            uc = model.get_learned_conditioning(batch_size * [""])
                         if isinstance(prompts, tuple):
                             prompts = list(prompts)
 

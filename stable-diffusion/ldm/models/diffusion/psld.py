@@ -317,7 +317,7 @@ class DDIMSampler(object):
                 error = inpaint_error * gamma + meas_error * omega
 
                 gradients = torch.autograd.grad(error, inputs=optimal_c)[0]
-                optimal_c = optimal_c - 1e-1 * gradients
+                optimal_c = optimal_c - gradients
 
                 print(f'TEXT LOSS: {error.item()}')
 
