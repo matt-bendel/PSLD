@@ -453,7 +453,7 @@ def main():
                     else:
                         # pdb.set_trace()
                         if opt.scale != 1.0 :
-                            uc = model.get_learned_conditioning(batch_size * ["A photo of a face"])
+                            uc = model.get_learned_conditioning(batch_size * ["A close-up photograph of a little girl's face"])
                         if isinstance(prompts, tuple):
                             prompts = list(prompts)
 
