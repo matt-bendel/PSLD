@@ -227,7 +227,7 @@ class DDIMSampler(object):
         ##########################################
         if inpainting:
             z_t = torch.clone(x.detach())
-            # z_t.requires_grad = True
+            z_t.requires_grad = True
 
             if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
                 e_t = self.model.apply_model(z_t, t, optimal_c.detach())
@@ -323,7 +323,7 @@ class DDIMSampler(object):
 
             self.optimal_c = optimal_c.detach()
 
-            return z_prev.detach(), pred_z_0.detach()
+            # return z_prev.detach(), pred_z_0.detach()
 
             
             ##############################################
@@ -343,9 +343,9 @@ class DDIMSampler(object):
             # inpaint_error = torch.linalg.norm(encoded_z_0 - pred_z_0)
 
             # error = inpaint_error * gamma + meas_error * omega
-            error = meas_error
+            error = omega * meas_error
 
-            gradients = 1 / meas_error.detach() * torch.autograd.grad(error, inputs=z_t)[0]
+            gradients = torch.autograd.grad(error, inputs=z_t)[0]
             z_prev = z_prev - gradients
             print('Loss: ', error.item())
             
