@@ -349,7 +349,7 @@ class DDIMSampler(object):
             z_prev = z_prev - gradients
             print('Loss: ', error.item())
             
-            return z_prev.detach(), pred_z_0.detach(), meas_error.detach().cpu().numpy()
+            return z_prev.detach(), pred_z_0.detach()
         
         elif general_inverse:
             print('Running general inverse module...')
