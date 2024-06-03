@@ -20,7 +20,7 @@ class DDIMSampler(object):
         # TODO
         self.optimal_c = None
         self.opt = None
-        self.K = 10
+        self.K = 1
 
     def register_buffer(self, name, attr):
         if type(attr) == torch.Tensor:
@@ -219,9 +219,8 @@ class DDIMSampler(object):
                       ffhq256=False, c_opt=False, dc=False):
         b, *_, device = *x.shape, x.device
 
-        optimal_c = c # self.optimal_c
-        optimal_c.requires_grad = True
-           
+        optimal_c = self.optimal_c
+
         ##########################################
         ## measurment consistency guided diffusion
         ##########################################
@@ -270,6 +269,9 @@ class DDIMSampler(object):
                 noise = torch.nn.functional.dropout(noise, p=noise_dropout)
 
             z_prev = a_prev.sqrt() * pred_z_0 + dir_zt + noise
+
+            optimal_c = c
+            optimal_c.requires_grad = True
 
             for k in range(self.K):
                 if index == 0:
