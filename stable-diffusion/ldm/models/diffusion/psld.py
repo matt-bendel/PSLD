@@ -340,8 +340,8 @@ class DDIMSampler(object):
             encoded_z_0 = self.model.get_first_stage_encoding(encoded_z_0)
             inpaint_error = torch.linalg.norm(encoded_z_0 - pred_z_0)
 
-            error = inpaint_error * gamma + meas_error * omega
-            # error = omega * meas_error
+            # error = inpaint_error * gamma + meas_error * omega
+            error = omega * meas_error
 
             gradients = torch.autograd.grad(error, inputs=z_t)[0]
             z_prev = z_prev - gradients
