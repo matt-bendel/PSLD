@@ -272,6 +272,7 @@ class DDIMSampler(object):
             z_prev = a_prev.sqrt() * pred_z_0 + dir_zt + noise
 
             for k in range(self.K):
+                break
                 if index == 0:
                     break
 
